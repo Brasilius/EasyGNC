@@ -6,7 +6,7 @@ EasyGNC is a project dedicated to simplifying the general process of testing con
 
 This project is composed of various components detailed below:
 
-- Simulation Environment (either using a web front end or Godot)
+- Simulation Environment (either using a web front end or Gazeebo)
     - weather module (includes varying wind conditions and atmospheric conditions)
     - urban module (includes skyscraper adjacent models for evaluating urban safety of model)
     - Gravity (9.81 m/s)
