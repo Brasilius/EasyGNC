@@ -6,7 +6,7 @@ A 2-D drone swarm simulation for comparing guidance, navigation, and control (GN
 
 ## What it does
 
-- **Environment** – a straight hallway (configurable width × length). Two parallel walls extend along the Y axis. Drones enter at Y = 0 and fly toward increasing Y.
+- **Environment** – a straight hallway (configurable width × length). Two parallel walls extend along the Y axis. Drones enter at Y = 0 and fly toward increasing Y. Rectangular obstacles (e.g. pillars) can be placed inside the hallway; by default a 3 m × 8 m central pillar sits at y = [46, 54].
 - **Sensors** – each drone casts 8 optical rays at 45° intervals. Each ray returns the distance to the nearest wall (with Gaussian noise). No GPS; lateral position is estimated entirely from these distance vectors.
 - **Fusion methods** (how sensor readings are combined into a position estimate):
   | Method | Description |
@@ -20,6 +20,7 @@ A 2-D drone swarm simulation for comparing guidance, navigation, and control (GN
   | Leader-Follower | Centre drone tracks the hallway centreline; others hold fixed X offsets relative to the leader |
   | Consensus | Drones rank themselves by X position and drive toward evenly-spaced desired positions, with wall-avoidance override |
   | Behavior-Based | Each drone independently blends centering, wall-avoidance, and inter-drone separation behaviours |
+- **Obstacle avoidance** – a reactive layer runs after the control step. Drones receive lateral repulsion from nearby obstacle surfaces and decelerate when approaching an obstacle head-on. Wall and obstacle boundaries are enforced at every tick via position clamping.
 - **Comparison** – all 9 combinations run at the same random seed and are evaluated on three metrics: position RMSE, minimum wall clearance, and average formation spread.
 
 ---
@@ -29,7 +30,7 @@ A 2-D drone swarm simulation for comparing guidance, navigation, and control (GN
 ```
 EasyGNC/
 ├── simulation/
-│   └── hallway.py          # Hallway geometry and ray intersection
+│   └── hallway.py          # Hallway geometry, RectObstacle, ray intersection
 ├── drone/
 │   ├── drone.py            # Drone state (true + estimated)
 │   └── sensors.py          # Ray casting and x-estimate extraction
@@ -42,10 +43,10 @@ EasyGNC/
 │   ├── consensus.py        # Consensus-based
 │   └── behavior.py         # Behavior-based
 ├── swarm/
-│   ├── swarm.py            # Single simulation step (sense → fuse → control → move)
+│   ├── swarm.py            # Single simulation step (sense → fuse → control → avoid → move)
 │   └── runner.py           # Runs all 9 combinations and collects metrics
 ├── visualization/
-│   ├── animator.py         # 3×3 trajectory plot
+│   ├── animator.py         # Live FuncAnimation + 3×3 static trajectory plot
 │   └── metrics.py          # 3-panel heatmap of performance metrics
 ├── main.py                 # Entry point
 └── pyproject.toml
@@ -81,10 +82,11 @@ Dependencies (`numpy`, `matplotlib`) are installed automatically from `pyproject
 python main.py
 ```
 
-This runs all 9 fusion × control combinations (≈ 5 seconds) and opens two matplotlib windows:
+This runs all 9 fusion × control combinations (≈ 5 seconds) and opens three matplotlib windows in sequence:
 
-1. **Trajectory plot** – 3 × 3 grid showing each drone's X–Y path through the hallway. Circles mark starting positions, squares mark final positions.
-2. **Metrics heatmap** – colour-coded table comparing Position RMSE, minimum wall clearance, and average formation spread across all combinations.
+1. **Live animation** – 3 × 3 animated grid showing all 5 drones moving through the hallway in real time, with 60-step trailing history. Close the window to continue.
+2. **Trajectory plot** – 3 × 3 static grid showing each drone's full X–Y path. Circles mark starting positions, squares mark final positions.
+3. **Metrics heatmap** – colour-coded table comparing Position RMSE, minimum wall clearance, and average formation spread across all combinations.
 
 A text summary is also printed to the terminal.
 
@@ -97,12 +99,17 @@ Key parameters are defined as module-level constants and can be edited directly:
 | File | Constant | Default | Meaning |
 |---|---|---|---|
 | `main.py` | `Hallway(width=..., length=...)` | 12 m × 100 m | Hallway dimensions |
+| `main.py` | `RectObstacle(x_min, x_max, y_min, y_max)` | pillar at y=[46,54] | In-hallway rectangular obstacle |
 | `swarm/swarm.py` | `DT` | 0.1 s | Simulation timestep |
 | `swarm/swarm.py` | `INITIAL_X` | [-4, -2, 0, 2, 4] | Starting X positions |
 | `swarm/swarm.py` | `PROCESS_NOISE_STD` | 0.03 m | Actuator noise |
+| `swarm/swarm.py` | `_K_OBS` | 8.0 | Obstacle repulsion gain |
+| `swarm/swarm.py` | `_OBS_RADIUS` | 6.0 m | Repulsion influence radius |
+| `swarm/swarm.py` | `_OBS_Y_AHEAD` | 10.0 m | Forward deceleration look-ahead |
 | `swarm/runner.py` | `NUM_STEPS` | 500 | Steps per run (50 s) |
 | `drone/sensors.py` | `SENSOR_NOISE_STD` | 0.08 m | Optical sensor noise |
 | `drone/sensors.py` | `NUM_RAYS` | 8 | Rays per drone |
+| `visualization/animator.py` | `_TRAIL_LEN` | 60 steps | History trail length in animation |
 
 ---
 
@@ -118,7 +125,7 @@ Key parameters are defined as module-level constants and can be edited directly:
 
 ## Roadmap
 
-- Stage 2: obstacles inside the hallway (pillars, doorways)
+- Stage 2: ~~obstacles inside the hallway (pillars, doorways)~~ **done** – `RectObstacle` with AABB ray intersection and reactive avoidance
 - Stage 3: full 3-D simulation with altitude control
 - Stage 4: Monte Carlo runner across N seeds with confidence intervals
 - Stage 5: Gazebo / ROS integration for hardware-in-the-loop testing
