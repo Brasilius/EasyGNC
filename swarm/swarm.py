@@ -1,4 +1,5 @@
 import numpy as np
+
 from drone.drone import Drone
 from drone.sensors import cast_rays
 from simulation.hallway import Hallway
@@ -9,16 +10,18 @@ BASE_VY = 2.0
 DT = 0.1
 PROCESS_NOISE_STD = 0.03
 
-_K_OBS = 8.0        # repulsion gain
-_OBS_RADIUS = 6.0   # influence radius from obstacle surface (m)
-_OBS_Y_AHEAD = 10.0 # vy decel look-ahead distance (m)
+_K_OBS = 8.0  # repulsion gain
+_OBS_RADIUS = 6.0  # influence radius from obstacle surface (m)
+_OBS_Y_AHEAD = 10.0  # vy decel look-ahead distance (m)
 
 
 def create_swarm(hallway: Hallway) -> list[Drone]:
     return [Drone(i, float(x), INITIAL_Y, BASE_VY) for i, x in enumerate(INITIAL_X)]
 
 
-def _obstacle_avoidance(vel: np.ndarray, pos: np.ndarray, hallway: Hallway) -> np.ndarray:
+def _obstacle_avoidance(
+    vel: np.ndarray, pos: np.ndarray, hallway: Hallway
+) -> np.ndarray:
     """Add repulsion from obstacles into the commanded velocity."""
     vx, vy = float(vel[0]), float(vel[1])
     for obs in hallway.obstacles:
@@ -39,7 +42,7 @@ def _obstacle_avoidance(vel: np.ndarray, pos: np.ndarray, hallway: Hallway) -> n
                     lat = np.sign(offset) * dist
                 else:
                     gap_right = hallway.x_right - obs.x_max
-                    gap_left  = obs.x_min - hallway.x_left
+                    gap_left = obs.x_min - hallway.x_left
                     lat = dist if gap_right >= gap_left else -dist
             vx += strength * lat / dist
 
