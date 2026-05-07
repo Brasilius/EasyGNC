@@ -62,13 +62,12 @@ def step(drones: list[Drone], hallway: Hallway, fusion_step, control_fn) -> None
         drone.state_est, drone.cov = fusion_step(
             drone.state_est, drone.cov, distances, hallway, DT
         )
-        # y is not observable from lateral wall sensors; sync from true position
-        drone.state_est[1] = drone.true_pos[1]
 
     velocities = control_fn(drones, hallway)
     for drone, vel in zip(drones, velocities):
         vel = _obstacle_avoidance(vel, drone.true_pos, hallway)
         noise = np.random.normal(0.0, PROCESS_NOISE_STD, 2)
         drone.apply_velocity(vel + noise, DT, hallway)
+        drone.state_est[1] = drone.true_pos[1]
         drone.state_est[3] = vel[1]
         drone.record()
